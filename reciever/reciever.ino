@@ -1,3 +1,29 @@
+#include <aes.h>
+#include <aes128_dec.h>
+#include <aes128_enc.h>
+#include <aes192_dec.h>
+#include <aes192_enc.h>
+#include <aes256_dec.h>
+#include <aes256_enc.h>
+#include <AESLib.h>
+#include <aes_dec.h>
+#include <aes_enc.h>
+#include <aes_invsbox.h>
+#include <aes_keyschedule.h>
+#include <aes_sbox.h>
+#include <aes_types.h>
+#include <bcal-basic.h>
+#include <bcal-cbc.h>
+#include <bcal-cmac.h>
+#include <bcal-ofb.h>
+#include <bcal_aes128.h>
+#include <bcal_aes192.h>
+#include <bcal_aes256.h>
+#include <blockcipher_descriptor.h>
+#include <gf256mul.h>
+#include <keysize_descriptor.h>
+#include <memxor.h>
+
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
@@ -11,6 +37,8 @@ RF24 radio(9, 10); // CE, CSN
 
 // setup radio address array
 const byte address[6] = "00001";
+
+const uint8_t key[] = {34, 45, 77, 20, 24, 48, 63, 46, 73, 99, 57, 81, 03, 47, 85, 11};
 
 void setup() {
   // start serial communication
@@ -35,7 +63,7 @@ void loop()
     String AccelCalib = "3";
 
     // create buffers for text data
-    char text[255] = "";
+    char text[128] = "";
 
     //create buffer for our first pass parsing
     char message[6][128];
@@ -44,6 +72,13 @@ void loop()
     int messageSize = 3;
     // grab data from radiobuffer
     radio.read(&text, sizeof(text));
+
+    // print encrypted message
+    Serial.print(F("Encrypted Message: "));
+    Serial.println(text);
+
+    // decrypt message
+    aes128_dec_single(key, text);
 
     // create delimeter char
     char delimiterComma[] = ",";
