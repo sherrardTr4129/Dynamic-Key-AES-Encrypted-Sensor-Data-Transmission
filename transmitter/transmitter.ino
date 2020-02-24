@@ -32,13 +32,17 @@
 #include <Adafruit_BNO055.h>
 #include <utility/imumaths.h>
 
+#define BNO055_SAMPLERATE_DELAY_MS (30)
+
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 
 RF24 radio(9, 10); // CE, CSN
 const byte address[6] = "00001";
 
 // setup buffer for recived text
-char text[128] = "";
+char textX[32] = "";
+char textY[32] = "";
+char textZ[32] = "";
 
 // setup key for AES encryption
 const uint8_t key[] = {34, 45, 77, 20, 24, 48, 63, 46, 73, 99, 57, 81, 03, 47, 85, 11};
@@ -46,13 +50,13 @@ const uint8_t key[] = {34, 45, 77, 20, 24, 48, 63, 46, 73, 99, 57, 81, 03, 47, 8
 void setup() {
   //setup serial
   Serial.begin(9600);
-  
+
   // initialize BNO055 Sensor
-  if(!bno.begin())
+  if (!bno.begin())
   {
     // sensor could not be found, loop forever
     Serial.print("No BNO055 detected ... Check your wiring or I2C ADDR!");
-    while(1);
+    while (1);
   }
 
   delay(1000);
@@ -62,12 +66,12 @@ void setup() {
   radio.begin();
   radio.openWritingPipe(address);
   radio.setPALevel(RF24_PA_MIN);
-  radio.stopListening();      
+  radio.stopListening();
 }
 void loop()
-{  
+{
   // get new sensor event instance
-  sensors_event_t event; 
+  sensors_event_t event;
   bno.getEvent(&event);
 
   // get calibration information
@@ -79,14 +83,24 @@ void loop()
   float Yorientation = (float)event.orientation.y;
   float Zorientation = (float)event.orientation.z;
 
-  // construct message string and convert it to a character array
-  String textStr = "X:" + String(Xorientation) + "," + "Y:" + String(Yorientation)+ "," + "Z:" + String(Zorientation);
-  textStr.toCharArray(text, sizeof(text));
+  // construct message strings and convert them to a character arrays
+  String textStrX = "X:" + String(Xorientation);
+  String textStrY = "Y:" + String(Yorientation);
+  String textStrZ = "Z:" + String(Zorientation);
+  textStrX.toCharArray(textX, sizeof(textX));
+  textStrY.toCharArray(textY, sizeof(textY));
+  textStrZ.toCharArray(textZ, sizeof(textZ));
 
-  // encrypt character array using AES
-  aes128_enc_single(key, text);
+  // encrypt character arrays using AES
+  aes128_enc_single(key, textX);
+  aes128_enc_single(key, textY);
+  aes128_enc_single(key, textZ);
 
   // send encrypted text through radio
-  radio.write(&text, sizeof(text));
-  delay(100);
+  radio.write(&textX, sizeof(textX));
+  delay(BNO055_SAMPLERATE_DELAY_MS);
+  radio.write(&textY, sizeof(textY));
+  delay(BNO055_SAMPLERATE_DELAY_MS);
+  radio.write(&textZ, sizeof(textZ));
+  delay(BNO055_SAMPLERATE_DELAY_MS);
 }
