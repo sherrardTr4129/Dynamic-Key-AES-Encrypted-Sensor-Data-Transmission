@@ -3,8 +3,8 @@
 % Date: 03/08/2020
 % Filename: ProcCSVFiles.m
 
-T = readtable("noFoil.csv")
-T2 = readtable("Foil.csv")
+T = readtable("rawData\noFoil.csv")
+T2 = readtable("rawData\Foil.csv")
 testInd = 10
 
 % grab binary streams

@@ -5,7 +5,7 @@
 
 import csv
 
-filename = "Foil.csv"
+filename = "rawData\Foil.csv"
 csvFile = open(filename, 'w')
 csvWriter = csv.writer(csvFile, delimiter=",")
 csvWriter.writerow(["Non-Encrypted Tx", "Encrypted Tx Binary Stream For X", "Encrypted Tx Binary Stream For Y",
