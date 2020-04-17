@@ -1,2 +1,2 @@
 # Dynamic Key AES Encrypted Sensor Data Transmission
-Wireless INS Sensor Fusion Using AES for Encryption
+This repository contains various software demonstrations of the transmission of AES encrypted data via the use of NRF24L01 sensor. These demos include real-time 3D model positionsing based on AES encrypted, wirelessly transmitted sensor data, key rotation functionallity and experiments to determine the effect of interference on the overall data transmission time.
