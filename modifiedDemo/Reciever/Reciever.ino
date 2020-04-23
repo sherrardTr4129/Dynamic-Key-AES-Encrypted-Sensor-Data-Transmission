@@ -31,7 +31,8 @@
 
 // define and macros
 #define BNO055_SAMPLERATE_DELAY_MS (30)
-#define KEY_ARRAY_SIZE 16
+#define KEY_ARRAY_SIZE              16
+#define RX_DONE_PIN                  3
 
 // instantiate radio object
 RF24 radio(9, 10); // CE, CSN
@@ -91,6 +92,9 @@ void setup() {
   // start serial communication
   Serial.begin(9600);
 
+  // setup status pin
+  pinMode(RX_DONE_PIN, OUTPUT);
+
   // setup NRF24L01 as reciever
   radio.begin();
   radio.openReadingPipe(0, address);
@@ -114,6 +118,12 @@ void loop()
     
     if(MessageString.charAt(0) == 'D')
     {
+      // toggle done pulse
+      digitalWrite(RX_DONE_PIN, HIGH);
+      delay(1);
+      digitalWrite(RX_DONE_PIN, LOW);
+
+      // print data
       Serial.print("Got Data Vector: ");
       Serial.println(MessageString.substring(1));
     }
@@ -132,6 +142,11 @@ void loop()
 
     if(seenK && seenJ)
     {
+      // toggle done pulse
+      digitalWrite(RX_DONE_PIN, HIGH);
+      delay(1);
+      digitalWrite(RX_DONE_PIN, LOW);
+      
       // concatinate key components together
       newKeyVal = KeyRotateVal1 + KeyRotateVal2;
 
