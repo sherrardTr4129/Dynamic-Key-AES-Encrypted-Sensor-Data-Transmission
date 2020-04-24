@@ -39,6 +39,7 @@
 #define joyYaxis                    A0
 #define joyXaxis                    A1
 #define joyButton                   4
+#define DEBOUNCE_BUFF               100
 
 Adafruit_BNO055 bno = Adafruit_BNO055(55);
 
@@ -64,6 +65,8 @@ int currentButtonState = 0;
 int prevXstate = 0;
 int prevYstate = 0;
 int prevButtonState = 0;
+int prevButtonStateDebounced = 0;
+int buttonStateDebounced = 0;
 
 void modArray(uint8_t keyArr[])
 {
@@ -108,8 +111,8 @@ void setup() {
   radio.stopListening();
 
   Serial.println("TX SIDE: ");
-  Serial.println("Serial Command Menu: ");
-  Serial.println("\'rotate\': Generates new AES key, sends it to RX side, then updates TX key");
+  Serial.println("Instructions: ");
+  Serial.println("move joystick to control robot in Gazebo enviornment. Click joystick down to rotate AES keys");
 }
 
 void loop()
@@ -121,6 +124,16 @@ void loop()
   currentXstate = analogRead(joyXaxis);
   currentYstate = analogRead(joyYaxis);
   currentButtonState = !digitalRead(joyButton);
+
+  // debounce button
+  if(currentButtonState)
+  {
+    delay(DEBOUNCE_BUFF);
+    if(!digitalRead(joyButton))
+    {
+      buttonStateDebounced = 1;
+    }
+  }
   
   while (Serial.available())
   {
@@ -130,7 +143,7 @@ void loop()
   }
   CommandStr.trim();
 
-  if(currentXstate != prevXstate or currentYstate != prevYstate or currentButtonState != prevButtonState)
+  if(currentXstate != prevXstate or currentYstate != prevYstate or buttonStateDebounced != prevButtonState)
   {
     String textStr1 = "X:" + String(currentXstate) +  " Y:" + String(currentYstate) + " B:" + String(currentButtonState);
     textStr1.toCharArray(text1, sizeof(text1));
@@ -144,7 +157,7 @@ void loop()
     digitalWrite(TX_DONE_PIN, HIGH);
   }
   
-  if (CommandStr.equals("rotate"))
+  if (buttonStateDebounced)
   {
     // perform key rotation
     memcpy(keyModArr, key, sizeof(key)); // make copy
@@ -183,5 +196,6 @@ void loop()
   // update previous joystick states
   prevXstate = currentXstate;
   prevYstate = currentYstate;
-  prevButtonState = currentButtonState;
+  prevButtonStateDebounced = buttonStateDebounced;
+  buttonStateDebounced = 0;
 }

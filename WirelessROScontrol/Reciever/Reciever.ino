@@ -27,13 +27,12 @@
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
-#include "StringSplitter.h"
 
 // define and macros
 #define BNO055_SAMPLERATE_DELAY_MS (30)
 #define KEY_ARRAY_SIZE              16
 #define RX_DONE_PIN                  3
-#define TOTAL_MODES                  3
+#define MESSAGE_LEN                  3
 
 // instantiate radio object
 RF24 radio(9, 10); // CE, CSN
@@ -48,7 +47,6 @@ uint8_t keyModArr[] = {34, 45, 77, 20, 24, 48, 63, 46, 73, 99, 57, 81, 03, 47, 8
 // control variables
 bool seenK = false;
 bool seenJ = false;
-int modeCounter = 0;
 
 // create empty string objects for incomming data after it is parsed
 String KeyRotateVal1 = "";
@@ -59,6 +57,8 @@ String newKeyVal = "";
 int rxXaxis = 0;
 int rxYaxis = 0;
 int rxButtonState = 0;
+float rxXaxisFloat = 0.0;
+float rxYaxisFloat = 0.0;
 
 String ArrToString(uint8_t keyArr[])
 {
@@ -66,7 +66,7 @@ String ArrToString(uint8_t keyArr[])
   for (int i = 0; i < KEY_ARRAY_SIZE; i++)
   {
     toReturnStr += String(keyArr[i]);
-    if(i != KEY_ARRAY_SIZE - 1)
+    if (i != KEY_ARRAY_SIZE - 1)
     {
       toReturnStr += ",";
     }
@@ -79,14 +79,14 @@ void toUint8Arr(String keyString, uint8_t keyArr[])
 {
   String AccumNums;
   int count = 0;
-  for(int i = 0; i < keyString.length(); i++)
+  for (int i = 0; i < keyString.length(); i++)
   {
     char currentChar = keyString.charAt(i);
-    if(currentChar != ',' && currentChar != '{' && currentChar != '}')
+    if (currentChar != ',' && currentChar != '{' && currentChar != '}')
     {
       AccumNums += currentChar;
     }
-   else if (currentChar == ',' || count == KEY_ARRAY_SIZE - 1)
+    else if (currentChar == ',' || count == KEY_ARRAY_SIZE - 1)
     {
       uint8_t currentNum = (AccumNums.toInt());
       AccumNums = "";
@@ -97,9 +97,9 @@ void toUint8Arr(String keyString, uint8_t keyArr[])
 }
 
 void setup() {
-  // start serial communication
-  Serial.begin(9600);
 
+  Serial.begin(9600);
+  
   // setup status pin
   pinMode(RX_DONE_PIN, OUTPUT);
 
@@ -108,8 +108,6 @@ void setup() {
   radio.openReadingPipe(0, address);
   radio.setPALevel(RF24_PA_MIN);
   radio.startListening();
-
-  Serial.println("RX SIDE: ");
 }
 void loop()
 {
@@ -123,8 +121,8 @@ void loop()
     radio.read(&text, sizeof(text));
     aes128_dec_single(key, text);
     String MessageString = String(text);
-    
-    if(MessageString.charAt(0) == 'X')
+
+    if (MessageString.charAt(0) == 'X')
     {
       // toggle done pulse
       digitalWrite(RX_DONE_PIN, HIGH);
@@ -135,9 +133,9 @@ void loop()
       int Xindex = MessageString.indexOf('X');
       int Yindex = MessageString.indexOf('Y');
       int Bindex = MessageString.indexOf('B');
-      String Xsub = MessageString.substring(Xindex+2, Yindex);
-      String Ysub = MessageString.substring(Yindex+2, Bindex);
-      String Bsub = MessageString.substring(Bindex+2);
+      String Xsub = MessageString.substring(Xindex + 2, Yindex);
+      String Ysub = MessageString.substring(Yindex + 2, Bindex);
+      String Bsub = MessageString.substring(Bindex + 2);
       Xsub.trim();
       Ysub.trim();
       Bsub.trim();
@@ -145,27 +143,41 @@ void loop()
       rxXaxis = Xsub.toInt();
       rxYaxis = Ysub.toInt();
       rxButtonState = Bsub.toInt();
-    }
 
-    else if(MessageString.charAt(0) == 'K')
+      // shift and scale joystickReadings
+      rxXaxisFloat = rxXaxis - 512;
+      rxYaxisFloat = rxYaxis - 512;
+      if (rxXaxisFloat != 0 and rxYaxisFloat != 0)
+      {
+        rxXaxisFloat = rxXaxisFloat / 512;
+        rxYaxisFloat = rxYaxisFloat / 512;
+      }
+      Serial.print("X: ");
+      Serial.print(rxXaxisFloat);
+      Serial.print(" ");
+      Serial.print("Y: ");
+      Serial.println(rxYaxisFloat);
+    }
+    
+    else if (MessageString.charAt(0) == 'K')
     {
       KeyRotateVal1 = MessageString.substring(1);
       seenK = true;
     }
 
-    else if(MessageString.charAt(0) == 'J')
+    else if (MessageString.charAt(0) == 'J')
     {
       KeyRotateVal2 = MessageString.substring(1);
       seenJ = true;
     }
 
-    if(seenK && seenJ)
+    if (seenK && seenJ)
     {
       // toggle done pulse
       digitalWrite(RX_DONE_PIN, HIGH);
       delay(1);
       digitalWrite(RX_DONE_PIN, LOW);
-      
+
       // concatinate key components together
       newKeyVal = KeyRotateVal1 + KeyRotateVal2;
 
@@ -174,12 +186,10 @@ void loop()
       ArrToString(keyModArr);
       memcpy(key, keyModArr, sizeof(keyModArr));
 
-      Serial.print("key modified to: ");
-      Serial.println(ArrToString(key));
-      
       seenK = false;
       seenJ = false;
     }
   }
+
   delay(BNO055_SAMPLERATE_DELAY_MS);
 }
