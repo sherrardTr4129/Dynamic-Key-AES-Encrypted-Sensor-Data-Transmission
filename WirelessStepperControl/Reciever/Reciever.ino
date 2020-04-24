@@ -145,38 +145,6 @@ void loop()
       rxXaxis = Xsub.toInt();
       rxYaxis = Ysub.toInt();
       rxButtonState = Bsub.toInt();
-
-      if(rxButtonState == 1)
-      {
-        modeCounter++;
-        if(modeCounter > TOTAL_MODES)
-        {
-          modeCounter = 0;
-        }
-      }
-
-      // slow speed directional control
-      if(modeCounter == 0)
-      {
-        // insert control code here
-      }
-
-      // medium speed directional control
-      else if(modeCounter == 1)
-      {
-        // insert control code here 
-      }
-
-      // fast speed directional control
-      else if(modeCounter == 2)
-      {
-        // insert control code here
-      }
-
-      else if(modeCounter == 3)
-      {
-        // insert control code here
-      }
     }
 
     else if(MessageString.charAt(0) == 'K')
