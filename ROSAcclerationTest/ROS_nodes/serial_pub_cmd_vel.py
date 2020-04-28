@@ -12,7 +12,7 @@ velocity_publisher = rospy.Publisher('cmd_vel', Twist, queue_size=10)
 vel_msg = Twist()
 
 def updateAndPub():
-    SPEED_SCALER = 2
+    SPEED_SCALER = 1
     while(True):
          msg = ard.readline()[:-2]
          msgList1 = msg.split(' ')
