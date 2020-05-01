@@ -29,8 +29,6 @@
 #include <RF24.h>
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
-#include <Adafruit_BNO055.h>
-#include <utility/imumaths.h>
 
 // defines and macros
 #define BNO055_SAMPLERATE_DELAY_MS (30)
@@ -40,9 +38,9 @@
 #define joyXaxis                    A1
 #define joyButton                   4
 #define DEBOUNCE_BUFF               100
+#define MAX_KEY_ELEM_SIZE           99
 
-Adafruit_BNO055 bno = Adafruit_BNO055(55);
-
+// setup NRF24L01 radio
 RF24 radio(9, 10); // CE, CSN
 const byte address[6] = "00001";
 
@@ -68,14 +66,35 @@ int prevButtonState = 0;
 int prevButtonStateDebounced = 0;
 int buttonStateDebounced = 0;
 
+/*
+ * This function modified the current key array by randomly 
+ * assigning a value between 0 and MAX_KEY_ELEM_SIZE to each 
+ * array index. 
+ * 
+ * params:
+ *    keyArr: The pointer to a given key array
+ *    
+ * returns:
+ *    void
+ */
 void modArray(uint8_t keyArr[])
 {
   for (int i = 0; i < KEY_ARRAY_SIZE; i++)
   {
-    keyArr[i] = random(0, 99);
+    keyArr[i] = random(0, MAX_KEY_ELEM_SIZE);
   }
 }
 
+/*
+ * This function generates a String representation of a given AES
+ * key array.
+ * 
+ * Params: 
+ *    keyArr: The pointer to a given key array
+ * 
+ * Returns:
+ *    toReturnStr: The string representation of the AES key
+ */
 String ArrToString(uint8_t keyArr[])
 {
   String toReturnStr = "{";
@@ -93,7 +112,7 @@ String ArrToString(uint8_t keyArr[])
 
 void setup() {
   
-  //setup serial
+  //setup serial communication
   Serial.begin(9600);
 
   // setup status pin
@@ -104,7 +123,7 @@ void setup() {
   pinMode(joyYaxis, INPUT);
   pinMode(joyButton, INPUT_PULLUP); 
 
-  // setup NRF24L01 radio
+  // setup NRF24L01 radio ss transmitter
   radio.begin();
   radio.openWritingPipe(address);
   radio.setPALevel(RF24_PA_MIN);
@@ -143,9 +162,13 @@ void loop()
   }
   CommandStr.trim();
 
+  // if new user data has been received...
   if(currentXstate != prevXstate or currentYstate != prevYstate or buttonStateDebounced != prevButtonState)
   {
+    // construct string representation of user input
     String textStr1 = "X:" + String(currentXstate) +  " Y:" + String(currentYstate) + " B:" + String(currentButtonState);
+
+    // convert constructed string to char array
     textStr1.toCharArray(text1, sizeof(text1));
 
     // encrypt char array using AES
@@ -156,7 +179,8 @@ void loop()
     radio.write(&text1, sizeof(text1));
     digitalWrite(TX_DONE_PIN, HIGH);
   }
-  
+
+  // if the user has pressed the joystick button...
   if (buttonStateDebounced)
   {
     // perform key rotation
@@ -170,6 +194,7 @@ void loop()
     String sub1 = "K" + keyString.substring(0, 25);
     String sub2 = "J" + keyString.substring(25);
 
+    // convert key components to char arrays
     sub1.toCharArray(keyModCharArr1, sizeof(keyModCharArr1));
     sub2.toCharArray(keyModCharArr2, sizeof(keyModCharArr2));
 
@@ -185,17 +210,21 @@ void loop()
     digitalWrite(TX_DONE_PIN, HIGH);
     delay(1);
 
+    // if both key components were successfully transmitted...
     if(oneDone && twoDone)
     {
-      // modify key if radio transmission successful
+      // modify current key
       memcpy(key, keyModArr, sizeof(keyModArr));
     }
   }
+  // reset serial command string
   CommandStr = "";
 
   // update previous joystick states
   prevXstate = currentXstate;
   prevYstate = currentYstate;
+
+  // update previous button states
   prevButtonStateDebounced = buttonStateDebounced;
   buttonStateDebounced = 0;
 }

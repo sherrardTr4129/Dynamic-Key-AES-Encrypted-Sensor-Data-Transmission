@@ -40,7 +40,7 @@ RF24 radio(9, 10); // CE, CSN
 // setup radio address array
 const byte address[6] = "00001";
 
-// setup key for aes encryption
+// setup key for AES encryption
 uint8_t key[] = {34, 45, 77, 20, 24, 48, 63, 46, 73, 99, 57, 81, 03, 47, 85, 11};
 uint8_t keyModArr[] = {34, 45, 77, 20, 24, 48, 63, 46, 73, 99, 57, 81, 03, 47, 85, 11};
 
@@ -60,6 +60,16 @@ int rxButtonState = 0;
 float rxXaxisFloat = 0.0;
 float rxYaxisFloat = 0.0;
 
+/*
+ * This function generates a String representation of a given AES
+ * key array.
+ * 
+ * Params: 
+ *    keyArr: The pointer to a given key array
+ * 
+ * Returns:
+ *    toReturnStr: The string representation of the AES key
+ */
 String ArrToString(uint8_t keyArr[])
 {
   String toReturnStr = "{";
@@ -75,6 +85,16 @@ String ArrToString(uint8_t keyArr[])
   return toReturnStr;
 }
 
+/*
+ * This function takes a String representation of a given key 
+ * and modifies an existing key array to contain the same data within the
+ * String representation. Note that this function assumes the key's String representation
+ * is in the format {XX, YY, ... ,ZZ}.
+ * 
+ * params:
+ *    keyString: The String representation of a given key array
+ *    keyArr: The pointer to an existing key array to be modified.
+ */
 void toUint8Arr(String keyString, uint8_t keyArr[])
 {
   String AccumNums;
@@ -98,6 +118,7 @@ void toUint8Arr(String keyString, uint8_t keyArr[])
 
 void setup() {
 
+  // setup serial communication
   Serial.begin(9600);
   
   // setup status pin
@@ -119,9 +140,13 @@ void loop()
 
     // grab data from radiobuffer
     radio.read(&text, sizeof(text));
+
+    // attempt to decrypt the message using the current AES key
     aes128_dec_single(key, text);
     String MessageString = String(text);
 
+    // if the message starts with the character 'X', it is a user input
+    // data packet
     if (MessageString.charAt(0) == 'X')
     {
       // toggle done pulse
@@ -140,37 +165,51 @@ void loop()
       Ysub.trim();
       Bsub.trim();
 
+      // convert extracted data from String representation to integer representation.
       rxXaxis = Xsub.toInt();
       rxYaxis = Ysub.toInt();
       rxButtonState = Bsub.toInt();
 
-      // shift and scale joystickReadings
+      // shift joystickReadings down by 512
       rxXaxisFloat = rxXaxis - 512;
       rxYaxisFloat = rxYaxis - 512;
+
+      // if the shifted values are not already zero, scale them to be within -1 and 1
       if (rxXaxisFloat != 0 and rxYaxisFloat != 0)
       {
         rxXaxisFloat = rxXaxisFloat / 512;
         rxYaxisFloat = rxYaxisFloat / 512;
       }
+
+      // print the extracted data over the serial interface
       Serial.print("X: ");
       Serial.print(rxXaxisFloat);
       Serial.print(" ");
       Serial.print("Y: ");
       Serial.println(rxYaxisFloat);
     }
-    
+
+    // if the first element of the retrieved message is K, it is 
+    // the first portion of a newly generated key.
     else if (MessageString.charAt(0) == 'K')
     {
+      // get the first portion of the new key, starting
+      // after the control character.
       KeyRotateVal1 = MessageString.substring(1);
       seenK = true;
     }
 
+    // if the first element of the retrieved message is J, it is 
+    // the first portion of a newly generated key.
     else if (MessageString.charAt(0) == 'J')
     {
+      // get the seoond portion of the new key, starting
+      // after the control character.
       KeyRotateVal2 = MessageString.substring(1);
       seenJ = true;
     }
 
+    // once both key portions have been recieved...
     if (seenK && seenJ)
     {
       // toggle done pulse
@@ -190,6 +229,6 @@ void loop()
       seenJ = false;
     }
   }
-
+  // loop refresh delay
   delay(BNO055_SAMPLERATE_DELAY_MS);
 }
