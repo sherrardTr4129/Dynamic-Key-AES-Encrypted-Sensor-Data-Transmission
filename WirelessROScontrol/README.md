@@ -10,3 +10,8 @@ The function block diagram in the image below outlines the various components us
 The functional flowchart diagram seen below depicts the overall software functionallity available in this demo.
 
 ![Software Functionallity Flowchart](../docs/photos/WirelessROSControlProcess.png)
+
+## Demo Video
+A YouTube video depicting the functionallity of this setup can be seen below.
+
+[![](http://img.youtube.com/vi/PZtwYhTJY84/0.jpg)](http://www.youtube.com/watch?v=PZtwYhTJY84 "AES Encrypted Wireless ROS Control Demo")
