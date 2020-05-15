@@ -9,4 +9,4 @@ The function block schematic seen in the image below depicts the hardware setup 
 ## Key Rotation Functionallity
 The flowchart seen in the image below depicts the software functionallity used to implement the AES key rotation process.
 
-![Key Rotation Flowchart](docs/photos/KeyRotationProcess.png)
+![Key Rotation Flowchart](../docs/photos/KeyRotationProcess.png)
